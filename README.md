@@ -1,7 +1,7 @@
 # MessFunny
 
 bored? Open this site and let it throw you somewhere fresh.
-
+Visit: https://wuckmess.fun/ and start the journal
 Luangao is a free, open-source web app that exposes a single endpoint and turns one click into a random jump across live trending content. It fetches hot links from selected websites, picks one at random, then sends you there with a flashy loading screen and a tiny bit of chaos.
 
 Simple. Weird. Fun.
@@ -42,8 +42,7 @@ Luangao currently fetches trending content from:
 The app does not store a fixed list of target URLs. It fetches live hot content from these sources and returns a random result.
 
 ## Quick Start
-😐 _uck， no patition to run local, 【quick quick quick start: 】vist https://wuck.onrender.com, and wait for about 15min to hot start the website(I have no money to buy a single machine to deploy so just use this haha)
-### Requirements
+visit https://wuckmess.fun/
 
 - Go 1.22 or newer
 
