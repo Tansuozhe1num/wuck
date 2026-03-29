@@ -39,6 +39,7 @@ type RandomJumpHandler struct {
 	mu          sync.RWMutex
 	cachedItems []RandomJumpResult
 	lastCrawled time.Time
+	refreshing  bool
 }
 
 func NewRandomJumpHandler() *RandomJumpHandler {
@@ -81,6 +82,11 @@ func (h *RandomJumpHandler) loadItems(ctx context.Context) ([]RandomJumpResult, 
 		return cachedItems, nil
 	}
 
+	if len(cachedItems) > 0 {
+		h.refreshCacheAsync()
+		return cachedItems, nil
+	}
+
 	items, err := h.crawlSources(ctx)
 	if err == nil && len(items) > 0 {
 		h.setCachedItems(items)
@@ -113,23 +119,45 @@ func (h *RandomJumpHandler) crawlSources(ctx context.Context) ([]RandomJumpResul
 		return nil, err
 	}
 
+	type crawlResult struct {
+		items []RandomJumpResult
+		err   error
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	resultsCh := make(chan crawlResult, len(order))
+
+	for _, sourceIndex := range order {
+		source := h.sources[sourceIndex]
+		go func() {
+			items, fetchErr := source.Fetch(ctx, h.client)
+			resultsCh <- crawlResult{
+				items: items,
+				err:   fetchErr,
+			}
+		}()
+	}
+
 	results := make([]RandomJumpResult, 0, 24)
 	successCount := 0
 	var firstErr error
 
-	for _, sourceIndex := range order {
-		items, fetchErr := h.sources[sourceIndex].Fetch(ctx, h.client)
-		if fetchErr != nil {
+	for range order {
+		result := <-resultsCh
+		if result.err != nil {
 			if firstErr == nil {
-				firstErr = fetchErr
+				firstErr = result.err
 			}
 			continue
 		}
 
-		results = append(results, items...)
+		results = append(results, result.items...)
 		successCount++
 
-		if successCount >= targetSources && len(results) >= 6 {
+		if successCount >= targetSources && hasEnoughUniqueResults(results, 6) {
+			cancel()
 			break
 		}
 	}
@@ -169,8 +197,52 @@ func (h *RandomJumpHandler) setCachedItems(items []RandomJumpResult) {
 
 func newDefaultHTTPClient() *http.Client {
 	return &http.Client{
-		Timeout: 6 * time.Second,
+		Timeout: 4 * time.Second,
+		Transport: &http.Transport{
+			MaxIdleConns:        32,
+			MaxIdleConnsPerHost: 8,
+			IdleConnTimeout:     90 * time.Second,
+			ForceAttemptHTTP2:   true,
+		},
 	}
+}
+
+func (h *RandomJumpHandler) refreshCacheAsync() {
+	if !h.tryStartRefresh() {
+		return
+	}
+
+	go func() {
+		defer h.finishRefresh()
+
+		refreshCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		items, err := h.crawlSources(refreshCtx)
+		if err != nil || len(items) == 0 {
+			return
+		}
+
+		h.setCachedItems(items)
+	}()
+}
+
+func (h *RandomJumpHandler) tryStartRefresh() bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	if h.refreshing {
+		return false
+	}
+
+	h.refreshing = true
+	return true
+}
+
+func (h *RandomJumpHandler) finishRefresh() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.refreshing = false
 }
 
 func randomSourceBatchSize(total int, reader io.Reader) (int, error) {
@@ -247,4 +319,29 @@ func uniqueResults(items []RandomJumpResult) []RandomJumpResult {
 	}
 
 	return results
+}
+
+func hasEnoughUniqueResults(items []RandomJumpResult, target int) bool {
+	if target <= 0 {
+		return true
+	}
+
+	seen := make(map[string]struct{}, target)
+	count := 0
+
+	for _, item := range items {
+		if item.URL == "" || item.Title == "" {
+			continue
+		}
+		if _, exists := seen[item.URL]; exists {
+			continue
+		}
+		seen[item.URL] = struct{}{}
+		count++
+		if count >= target {
+			return true
+		}
+	}
+
+	return false
 }

@@ -292,6 +292,35 @@ const homePage = `<!DOCTYPE html>
       font-weight: 600;
     }
 
+    .overlay-actions {
+      margin-top: 18px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .retry-btn {
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main);
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .retry-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.24);
+      transform: translateY(-1px);
+    }
+
+    .retry-btn:active {
+      transform: translateY(0);
+    }
+
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
@@ -370,6 +399,9 @@ const homePage = `<!DOCTYPE html>
       <span class="target-tag" id="targetTag">SOURCE</span>
       <div class="target-title" id="targetTitle">Loading...</div>
     </div>
+    <div class="overlay-actions">
+      <button id="retry" class="retry-btn" type="button">Retry another jump</button>
+    </div>
   </div>
 
   <script>
@@ -380,9 +412,13 @@ const homePage = `<!DOCTYPE html>
     const targetTag = document.getElementById('targetTag');
     const targetTitle = document.getElementById('targetTitle');
     const trigger = document.getElementById('trigger');
+    const retry = document.getElementById('retry');
 
     let isLoading = false;
     let audioCtx;
+    let jumpController;
+    let pendingJumpTimer;
+    let pendingRedirectTimer;
 
     function playTeleportSound() {
       if (!window.AudioContext && !window.webkitAudioContext) return;
@@ -432,21 +468,56 @@ const homePage = `<!DOCTYPE html>
       osc.stop(audioCtx.currentTime + 0.3);
     }
 
-    async function startJump() {
-      if (isLoading) return;
+    function clearJumpTimers() {
+      if (pendingJumpTimer) {
+        window.clearTimeout(pendingJumpTimer);
+        pendingJumpTimer = null;
+      }
+
+      if (pendingRedirectTimer) {
+        window.clearTimeout(pendingRedirectTimer);
+        pendingRedirectTimer = null;
+      }
+    }
+
+    function resetOverlayState() {
+      clearJumpTimers();
+      if (jumpController) {
+        jumpController.abort();
+        jumpController = null;
+      }
+
+      isLoading = false;
+      overlay.classList.remove('active');
+      targetInfo.classList.remove('visible');
+      overlayTitle.textContent = 'Summoning Chaos';
+      overlayDesc.textContent = 'Rolling the dice across the internet, please wait...';
+      targetTag.textContent = 'SOURCE';
+      targetTitle.textContent = 'Loading...';
+    }
+
+    async function startJump(forceRetry) {
+      if (isLoading && !forceRetry) return;
+
+      clearJumpTimers();
+      if (jumpController) {
+        jumpController.abort();
+      }
+
+      jumpController = new AbortController();
       isLoading = true;
-      
-      // 重置UI状态
+
       targetInfo.classList.remove('visible');
       overlayTitle.textContent = 'Navigating the Web...';
       overlayDesc.textContent = 'RNG is picking a target from live trending sources';
       overlay.classList.add('active');
-      
+
       playTeleportSound();
 
       try {
         const res = await fetch('/api/biu', {
-          headers: { 'Accept': 'application/json' }
+          headers: { 'Accept': 'application/json' },
+          signal: jumpController.signal,
         });
         const payload = await res.json();
 
@@ -454,36 +525,40 @@ const homePage = `<!DOCTYPE html>
           throw new Error(payload.msg || 'API returned an invalid target');
         }
 
-        // 成功获取数据
-        setTimeout(() => {
+        pendingJumpTimer = window.setTimeout(() => {
           playSuccessSound();
           overlayTitle.textContent = 'Target Locked';
           overlayDesc.textContent = 'Portal is open, initiating jump sequence';
-          
+
           targetTag.textContent = payload.data.source + ' · ' + payload.data.category;
           targetTitle.textContent = payload.data.title;
           targetInfo.classList.add('visible');
 
-          // 延迟后实际跳转
-          setTimeout(() => {
+          pendingRedirectTimer = window.setTimeout(() => {
             window.location.href = payload.data.url;
-          }, 1200);
-        }, 800); // 给个假loading时间让动画飞一会儿
+          }, 700);
+        }, 250);
 
       } catch (err) {
+        if (err && err.name === 'AbortError') {
+          return;
+        }
+
         setTimeout(() => {
           overlayTitle.textContent = 'Jump Failed';
           overlayDesc.textContent = err.message || 'Network error or service unavailable, please try again';
-          
-          setTimeout(() => {
-            overlay.classList.remove('active');
-            isLoading = false;
-          }, 2000);
-        }, 800);
+
+          isLoading = false;
+        }, 200);
+      } finally {
+        jumpController = null;
       }
     }
 
+    window.addEventListener('pageshow', resetOverlayState);
+    window.addEventListener('pagehide', clearJumpTimers);
     trigger.addEventListener('click', startJump);
+    retry.addEventListener('click', () => startJump(true));
   </script>
 </body>
 </html>`

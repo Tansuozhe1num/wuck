@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -120,30 +121,55 @@ func (s hackerNewsSource) Fetch(ctx context.Context, client *http.Client) ([]Ran
 		return nil, err
 	}
 
-	results := make([]RandomJumpResult, 0, 8)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	resultsCh := make(chan RandomJumpResult, limit)
+	var wg sync.WaitGroup
+
 	for _, pickedIndex := range order {
-		itemBody, fetchErr := fetchBody(ctx, client, s.itemURLPrefix+int64ToString(ids[pickedIndex])+".json")
-		if fetchErr != nil {
-			continue
-		}
+		itemID := ids[pickedIndex]
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
 
-		var item hackerNewsItem
-		if unmarshalErr := json.Unmarshal(itemBody, &item); unmarshalErr != nil {
-			continue
-		}
+			itemBody, fetchErr := fetchBody(ctx, client, s.itemURLPrefix+int64ToString(itemID)+".json")
+			if fetchErr != nil {
+				return
+			}
 
-		url := strings.TrimSpace(item.URL)
-		if url == "" {
-			url = "https://news.ycombinator.com/item?id=" + int64ToString(item.ID)
-		}
+			var item hackerNewsItem
+			if unmarshalErr := json.Unmarshal(itemBody, &item); unmarshalErr != nil {
+				return
+			}
 
-		result := s.buildResult(item.Title, url)
-		if result.Title == "" || result.URL == "" {
-			continue
-		}
+			url := strings.TrimSpace(item.URL)
+			if url == "" {
+				url = "https://news.ycombinator.com/item?id=" + int64ToString(item.ID)
+			}
 
+			result := s.buildResult(item.Title, url)
+			if result.Title == "" || result.URL == "" {
+				return
+			}
+
+			select {
+			case resultsCh <- result:
+			case <-ctx.Done():
+			}
+		}()
+	}
+
+	go func() {
+		wg.Wait()
+		close(resultsCh)
+	}()
+
+	results := make([]RandomJumpResult, 0, 8)
+	for result := range resultsCh {
 		results = append(results, result)
 		if len(results) >= 8 {
+			cancel()
 			break
 		}
 	}
