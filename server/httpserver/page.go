@@ -331,6 +331,242 @@ const homePage = `<!DOCTYPE html>
       100% { background-position: 200% 50%; }
     }
 
+    .recommendations {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      width: 100%;
+      max-width: 720px;
+      margin-top: 32px;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      perspective: 1000px;
+    }
+
+    .recommendations.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .rec-card {
+      position: relative;
+      background: rgba(24, 24, 27, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 16px;
+      overflow: hidden;
+      text-align: left;
+      cursor: pointer;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: box-shadow 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+      opacity: 0;
+      transform: translateY(30px) scale(0.9) rotateX(10deg);
+      will-change: transform, opacity;
+    }
+
+    .rec-card.show {
+      animation: card-spring 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    @keyframes card-spring {
+      0% {
+        opacity: 0;
+        transform: translateY(30px) scale(0.9) rotateX(10deg);
+      }
+      60% {
+        opacity: 1;
+        transform: translateY(-4px) scale(1.02) rotateX(0deg);
+      }
+      80% {
+        transform: translateY(2px) scale(0.99);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1) rotateX(0deg);
+      }
+    }
+
+    .rec-card:hover {
+      background: rgba(24, 24, 27, 0.8);
+      border-color: rgba(124, 58, 237, 0.4);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), 0 0 24px rgba(124, 58, 237, 0.15);
+      z-index: 2;
+    }
+
+    .rec-card:active {
+      transform: translateY(0) scale(0.96) !important;
+    }
+
+    /* Thumbnail area */
+    .rec-thumb {
+      position: relative;
+      width: 100%;
+      height: 130px;
+      border-radius: 12px 12px 0 0;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .rec-thumb-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+      transition: transform 0.4s ease;
+    }
+
+    .rec-thumb-img.loaded {
+      display: block;
+    }
+
+    .rec-card:hover .rec-thumb-img.loaded {
+      transform: scale(1.08);
+    }
+
+    .rec-thumb-fallback {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.3s ease;
+    }
+
+    .rec-thumb-img.loaded ~ .rec-thumb-fallback {
+      opacity: 0;
+    }
+
+    .rec-thumb-emoji {
+      font-size: 40px;
+      filter: grayscale(0.3);
+      transition: transform 0.3s ease;
+    }
+
+    .rec-card:hover .rec-thumb-emoji {
+      transform: scale(1.2) rotate(10deg);
+    }
+
+    /* Category-specific fallback gradients */
+    .rec-card[data-category="novel"] .rec-thumb-fallback { background: linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(236, 72, 153, 0.05)); }
+    .rec-card[data-category="video"] .rec-thumb-fallback { background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.05)); }
+    .rec-card[data-category="blog"] .rec-thumb-fallback { background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05)); }
+    .rec-card[data-category="news"] .rec-thumb-fallback { background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05)); }
+    .rec-card[data-category="lifestyle"] .rec-thumb-fallback { background: linear-gradient(135deg, rgba(244, 114, 182, 0.15), rgba(244, 114, 182, 0.05)); }
+
+    /* Glint/shine sweep */
+    .rec-shine {
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 60%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent);
+      transform: skewX(-20deg);
+      transition: left 0.6s ease;
+      pointer-events: none;
+    }
+
+    .rec-card.show:nth-child(1) .rec-shine {
+      animation: shine-sweep 0.8s 0.35s ease-out forwards;
+    }
+    .rec-card.show:nth-child(2) .rec-shine {
+      animation: shine-sweep 0.8s 0.5s ease-out forwards;
+    }
+    .rec-card.show:nth-child(3) .rec-shine {
+      animation: shine-sweep 0.8s 0.65s ease-out forwards;
+    }
+
+    @keyframes shine-sweep {
+      0% { left: -100%; }
+      100% { left: 150%; }
+    }
+
+    .rec-body {
+      padding: 14px 16px 16px;
+    }
+
+    .rec-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      background: rgba(124, 58, 237, 0.12);
+      border: 1px solid rgba(124, 58, 237, 0.25);
+      border-radius: 99px;
+      color: #c4b5fd;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .rec-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fafafa;
+      line-height: 1.4;
+      margin-bottom: 4px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .rec-category {
+      font-size: 11px;
+      color: #71717a;
+      text-transform: capitalize;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .rec-category::before {
+      content: '';
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .rec-card[data-category="novel"] .rec-badge { background: rgba(236, 72, 153, 0.12); border-color: rgba(236, 72, 153, 0.25); color: #f9a8d4; }
+    .rec-card[data-category="novel"] .rec-category::before { background: #ec4899; }
+    .rec-card[data-category="video"] .rec-badge { background: rgba(59, 130, 246, 0.12); border-color: rgba(59, 130, 246, 0.25); color: #93c5fd; }
+    .rec-card[data-category="video"] .rec-category::before { background: #3b82f6; }
+    .rec-card[data-category="blog"] .rec-badge { background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.25); color: #6ee7b7; }
+    .rec-card[data-category="blog"] .rec-category::before { background: #10b981; }
+    .rec-card[data-category="news"] .rec-badge { background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.25); color: #fcd34d; }
+    .rec-card[data-category="news"] .rec-category::before { background: #f59e0b; }
+    .rec-card[data-category="lifestyle"] .rec-badge { background: rgba(244, 114, 182, 0.12); border-color: rgba(244, 114, 182, 0.25); color: #f9a8d4; }
+    .rec-card[data-category="lifestyle"] .rec-category::before { background: #f472b6; }
+
+    /* Floating particles canvas */
+    #particles {
+      position: fixed;
+      inset: 0;
+      z-index: 101;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+    #particles.active {
+      opacity: 1;
+    }
+
+    /* Pick burst effect */
+    .rec-card.picked {
+      animation: card-pick-burst 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      border-color: rgba(124, 58, 237, 0.8) !important;
+      box-shadow: 0 0 48px rgba(124, 58, 237, 0.5), 0 0 96px rgba(56, 189, 248, 0.3) !important;
+    }
+
+    @keyframes card-pick-burst {
+      0% { transform: scale(1); filter: brightness(1); }
+      40% { transform: scale(1.08); filter: brightness(1.4); }
+      100% { transform: scale(1.04); filter: brightness(1.2); }
+    }
+
     @media (max-width: 640px) {
       .card {
         padding: 40px 24px;
@@ -343,6 +579,305 @@ const homePage = `<!DOCTYPE html>
         gap: 12px;
         align-items: center;
       }
+      .recommendations {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        max-width: 100%;
+      }
+      .rec-thumb {
+        height: 160px;
+      }
+    }
+
+    /* ── User Area ───────────────────────────── */
+    .user-area {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      z-index: 2;
+    }
+
+    .user-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(124, 58, 237, 0.1);
+      border: 1px solid rgba(124, 58, 237, 0.2);
+      border-radius: 99px;
+      color: #c4b5fd;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .user-pill:hover {
+      background: rgba(124, 58, 237, 0.18);
+      border-color: rgba(124, 58, 237, 0.35);
+    }
+
+    .user-pill .user-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #7c3aed, #38bdf8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .user-pill .logout-hint {
+      font-size: 11px;
+      color: #71717a;
+      margin-left: 4px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .user-pill:hover .logout-hint {
+      opacity: 1;
+    }
+
+    .login-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 99px;
+      color: #a1a1aa;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .login-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+      color: #fafafa;
+    }
+
+    /* ── Auth Modal ─────────────────────────── */
+    .auth-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(9, 9, 11, 0.7);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .auth-modal-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .auth-modal {
+      background: rgba(24, 24, 27, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 36px 32px 28px;
+      width: 100%;
+      max-width: 380px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 40px rgba(124, 58, 237, 0.1);
+      transform: translateY(12px) scale(0.96);
+      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .auth-modal-overlay.active .auth-modal {
+      transform: translateY(0) scale(1);
+    }
+
+    .auth-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 24px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 10px;
+      padding: 3px;
+    }
+
+    .auth-tab {
+      flex: 1;
+      text-align: center;
+      padding: 8px 0;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #71717a;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+      background: transparent;
+    }
+
+    .auth-tab.active {
+      background: rgba(124, 58, 237, 0.15);
+      color: #c4b5fd;
+    }
+
+    .auth-field {
+      margin-bottom: 16px;
+    }
+
+    .auth-field label {
+      display: block;
+      font-size: 13px;
+      color: #a1a1aa;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .auth-field input {
+      width: 100%;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      color: #fafafa;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s ease, background 0.2s ease;
+      box-sizing: border-box;
+    }
+
+    .auth-field input:focus {
+      border-color: rgba(124, 58, 237, 0.4);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .auth-field input::placeholder {
+      color: #52525b;
+    }
+
+    .auth-submit {
+      width: 100%;
+      padding: 11px 0;
+      background: #fafafa;
+      color: #09090b;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    .auth-submit:hover {
+      background: #e4e4e7;
+      transform: translateY(-1px);
+    }
+
+    .auth-submit:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    .auth-error {
+      color: #f87171;
+      font-size: 13px;
+      margin-top: 12px;
+      text-align: center;
+      min-height: 20px;
+    }
+
+    .auth-close {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      background: none;
+      border: none;
+      color: #71717a;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px;
+      line-height: 1;
+      transition: color 0.2s ease;
+    }
+
+    .auth-close:hover {
+      color: #fafafa;
+    }
+
+    .auth-modal {
+      position: relative;
+    }
+
+    /* ── User dropdown ──────────────────────── */
+    .user-dropdown {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      background: rgba(24, 24, 27, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 8px 0;
+      min-width: 160px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-4px);
+      transition: all 0.2s ease;
+    }
+
+    .user-dropdown.open {
+      opacity: 1;
+      pointer-events: all;
+      transform: translateY(0);
+    }
+
+    .user-dropdown-item {
+      padding: 8px 16px;
+      font-size: 13px;
+      color: #a1a1aa;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: none;
+      border: none;
+    }
+
+    .user-dropdown-item:hover {
+      background: rgba(255, 255, 255, 0.04);
+      color: #fafafa;
+    }
+
+    .user-dropdown-item.danger {
+      color: #f87171;
+    }
+
+    .user-dropdown-item.danger:hover {
+      background: rgba(248, 113, 113, 0.08);
+    }
+
+    .user-dropdown-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.06);
+      margin: 4px 0;
+    }
+
+    .user-dropdown .history-count {
+      font-size: 11px;
+      color: #52525b;
+      padding: 4px 16px 8px;
     }
   </style>
 </head>
@@ -352,6 +887,23 @@ const homePage = `<!DOCTYPE html>
   <div class="container">
     <div class="card">
       <div class="badge">Chaos Engine</div>
+      <div class="user-area" id="userArea">
+        <button class="login-btn" id="loginBtn" onclick="showAuthModal('login')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Sign In
+        </button>
+        <div class="user-pill" id="userPill" style="display:none" onclick="toggleUserDropdown(event)">
+          <div class="user-avatar" id="userAvatar">?</div>
+          <span id="userName">user</span>
+          <span class="logout-hint">▼</span>
+        </div>
+        <div class="user-dropdown" id="userDropdown">
+          <div class="history-count" id="historyCount">0 clicks recorded</div>
+          <div class="user-dropdown-divider"></div>
+          <button class="user-dropdown-item danger" onclick="handleLogout()">Sign Out</button>
+        </div>
+      </div>
+
       <h1>Wuck start your journal</h1>
       <p class="desc">
         bored?  click the button below and find something amuse you
@@ -394,13 +946,80 @@ const homePage = `<!DOCTYPE html>
     </div>
     <div class="overlay-title" id="overlayTitle">Summoning Chaos</div>
     <div class="overlay-desc" id="overlayDesc">Rolling the dice across the internet, please wait...</div>
-    
-    <div id="targetInfo" class="target-info">
-      <span class="target-tag" id="targetTag">SOURCE</span>
-      <div class="target-title" id="targetTitle">Loading...</div>
+
+    <div id="recommendations" class="recommendations">
+      <div id="recCard0" class="rec-card" onclick="pickTarget(0)">
+        <div class="rec-thumb">
+          <img id="recThumb0" class="rec-thumb-img" src="" alt="" />
+          <div class="rec-thumb-fallback" id="recFallback0">
+            <span class="rec-thumb-emoji">🎲</span>
+          </div>
+        </div>
+        <div class="rec-body">
+          <span class="rec-badge" id="recBadge0">SOURCE</span>
+          <div class="rec-title" id="recTitle0">Loading...</div>
+          <div class="rec-category" id="recCat0">category</div>
+        </div>
+        <div class="rec-shine"></div>
+      </div>
+      <div id="recCard1" class="rec-card" onclick="pickTarget(1)">
+        <div class="rec-thumb">
+          <img id="recThumb1" class="rec-thumb-img" src="" alt="" />
+          <div class="rec-thumb-fallback" id="recFallback1">
+            <span class="rec-thumb-emoji">🎲</span>
+          </div>
+        </div>
+        <div class="rec-body">
+          <span class="rec-badge" id="recBadge1">SOURCE</span>
+          <div class="rec-title" id="recTitle1">Loading...</div>
+          <div class="rec-category" id="recCat1">category</div>
+        </div>
+        <div class="rec-shine"></div>
+      </div>
+      <div id="recCard2" class="rec-card" onclick="pickTarget(2)">
+        <div class="rec-thumb">
+          <img id="recThumb2" class="rec-thumb-img" src="" alt="" />
+          <div class="rec-thumb-fallback" id="recFallback2">
+            <span class="rec-thumb-emoji">🎲</span>
+          </div>
+        </div>
+        <div class="rec-body">
+          <span class="rec-badge" id="recBadge2">SOURCE</span>
+          <div class="rec-title" id="recTitle2">Loading...</div>
+          <div class="rec-category" id="recCat2">category</div>
+        </div>
+        <div class="rec-shine"></div>
+      </div>
     </div>
     <div class="overlay-actions">
       <button id="retry" class="retry-btn" type="button">Retry another jump</button>
+    </div>
+  </div>
+
+
+  <div id="authModalOverlay" class="auth-modal-overlay" onclick="closeAuthModal(event)">
+    <div class="auth-modal" onclick="event.stopPropagation()">
+      <button class="auth-close" onclick="closeAuthModal()">×</button>
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Sign In</button>
+        <button class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">Register</button>
+      </div>
+      <form id="authForm" onsubmit="handleAuthSubmit(event)">
+        <div class="auth-field" id="fieldUsername" style="display:none">
+          <label for="authUsername">Username</label>
+          <input id="authUsername" type="text" placeholder="Pick a username" autocomplete="username" />
+        </div>
+        <div class="auth-field">
+          <label for="authEmail">Email</label>
+          <input id="authEmail" type="email" placeholder="you@example.com" autocomplete="email" />
+        </div>
+        <div class="auth-field">
+          <label for="authPassword">Password</label>
+          <input id="authPassword" type="password" placeholder="At least 6 characters" autocomplete="current-password" />
+        </div>
+        <div class="auth-error" id="authError"></div>
+        <button type="submit" class="auth-submit" id="authSubmit">Sign In</button>
+      </form>
     </div>
   </div>
 
@@ -408,18 +1027,313 @@ const homePage = `<!DOCTYPE html>
     const overlay = document.getElementById('overlay');
     const overlayTitle = document.getElementById('overlayTitle');
     const overlayDesc = document.getElementById('overlayDesc');
-    const targetInfo = document.getElementById('targetInfo');
-    const targetTag = document.getElementById('targetTag');
-    const targetTitle = document.getElementById('targetTitle');
+    const recommendations = document.getElementById('recommendations');
     const trigger = document.getElementById('trigger');
     const retry = document.getElementById('retry');
+    const loader = document.querySelector('.loader');
 
     let isLoading = false;
     let audioCtx;
     let jumpController;
     let pendingJumpTimer;
-    let pendingRedirectTimer;
+    let targets = [];
+    // ── Auth state ───────────────────────────────
+    let authToken = localStorage.getItem('wuck_token') || '';
+    let currentUser = null;
 
+    function updateAuthUI() {
+      const loginBtn = document.getElementById('loginBtn');
+      const userPill = document.getElementById('userPill');
+      const userName = document.getElementById('userName');
+      const userAvatar = document.getElementById('userAvatar');
+      const historyCount = document.getElementById('historyCount');
+
+      if (currentUser) {
+        loginBtn.style.display = 'none';
+        userPill.style.display = 'inline-flex';
+        userName.textContent = currentUser.username;
+        userAvatar.textContent = currentUser.username.charAt(0).toUpperCase();
+        const clicks = currentUser.clickHistory ? currentUser.clickHistory.length : 0;
+        historyCount.textContent = clicks + ' click' + (clicks !== 1 ? 's' : '') + ' recorded';
+      } else {
+        loginBtn.style.display = 'inline-flex';
+        userPill.style.display = 'none';
+      }
+    }
+
+    async function checkAuth() {
+      if (!authToken) return;
+      try {
+        const res = await fetch('/api/auth/me', {
+          headers: { 'Authorization': 'Bearer ' + authToken }
+        });
+        if (res.ok) {
+          const payload = await res.json();
+          currentUser = payload.data;
+        } else {
+          authToken = '';
+          localStorage.removeItem('wuck_token');
+        }
+      } catch (e) {
+        // offline, keep token and try later
+      }
+      updateAuthUI();
+    }
+
+    function showAuthModal(mode) {
+      document.getElementById('authModalOverlay').classList.add('active');
+      document.getElementById('authError').textContent = '';
+      document.getElementById('authEmail').value = '';
+      document.getElementById('authPassword').value = '';
+      document.getElementById('authUsername').value = '';
+      switchAuthTab(mode);
+      if (mode === 'login') {
+        document.getElementById('authEmail').focus();
+      } else {
+        document.getElementById('authUsername').focus();
+      }
+    }
+
+    function closeAuthModal(e) {
+      if (e && e.target !== document.getElementById('authModalOverlay')) return;
+      document.getElementById('authModalOverlay').classList.remove('active');
+    }
+
+    function switchAuthTab(mode) {
+      const tabLogin = document.getElementById('tabLogin');
+      const tabRegister = document.getElementById('tabRegister');
+      const fieldUsername = document.getElementById('fieldUsername');
+      const authSubmit = document.getElementById('authSubmit');
+      const authError = document.getElementById('authError');
+
+      if (mode === 'register') {
+        tabLogin.classList.remove('active');
+        tabRegister.classList.add('active');
+        fieldUsername.style.display = 'block';
+        authSubmit.textContent = 'Create Account';
+      } else {
+        tabLogin.classList.add('active');
+        tabRegister.classList.remove('active');
+        fieldUsername.style.display = 'none';
+        authSubmit.textContent = 'Sign In';
+      }
+      authError.textContent = '';
+      document.getElementById('authForm').dataset.mode = mode;
+    }
+
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      const mode = document.getElementById('authForm').dataset.mode || 'login';
+      const authError = document.getElementById('authError');
+      authError.textContent = '';
+
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+
+      if (!email || !password) {
+        authError.textContent = 'Please fill in all fields';
+        return;
+      }
+
+      if (mode === 'register' && password.length < 6) {
+        authError.textContent = 'Password must be at least 6 characters';
+        return;
+      }
+
+      let body;
+      if (mode === 'register') {
+        const username = document.getElementById('authUsername').value.trim();
+        if (!username) {
+          authError.textContent = 'Please enter a username';
+          return;
+        }
+        body = JSON.stringify({ username, email, password });
+      } else {
+        body = JSON.stringify({ email, password });
+      }
+
+      try {
+        const endpoint = mode === 'register' ? '/api/auth/register' : '/api/auth/login';
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: body
+        });
+        const payload = await res.json();
+
+        if (!res.ok) {
+          authError.textContent = payload.msg || 'Something went wrong';
+          return;
+        }
+
+        authToken = payload.data.token;
+        currentUser = payload.data.user;
+        localStorage.setItem('wuck_token', authToken);
+        updateAuthUI();
+        closeAuthModal();
+      } catch (err) {
+        authError.textContent = 'Network error, please try again';
+      }
+    }
+
+    function handleLogout() {
+      authToken = '';
+      currentUser = null;
+      localStorage.removeItem('wuck_token');
+      updateAuthUI();
+      document.getElementById('userDropdown').classList.remove('open');
+    }
+
+    function toggleUserDropdown(e) {
+      e.stopPropagation();
+      document.getElementById('userDropdown').classList.toggle('open');
+    }
+
+    document.addEventListener('click', function() {
+      document.getElementById('userDropdown').classList.remove('open');
+    });
+
+    async function recordClick(item) {
+      if (!authToken || !currentUser) return;
+      try {
+        await fetch('/api/auth/click', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + authToken
+          },
+          body: JSON.stringify({
+            url: item.url,
+            title: item.title,
+            source: item.source,
+            category: item.category
+          })
+        });
+        // Update local click count
+        if (currentUser.clickHistory) {
+          currentUser.clickHistory.push({ url: item.url, title: item.title, source: item.source, category: item.category });
+        }
+        updateAuthUI();
+      } catch (e) {}
+    }
+
+    let particlesCanvas;
+    let particlesCtx;
+    let particlesActive = false;
+    let particlesRaf;
+
+    // Category emoji map
+    const categoryEmoji = {
+      novel: '📖',
+      video: '🎬',
+      blog: '📝',
+      news: '📰',
+      lifestyle: '🌟',
+    };
+
+    // ── Particles ──────────────────────────────────
+    function initParticles() {
+      particlesCanvas = document.createElement('canvas');
+      particlesCanvas.id = 'particles';
+      document.body.appendChild(particlesCanvas);
+      particlesCtx = particlesCanvas.getContext('2d');
+      resizeParticles();
+      window.addEventListener('resize', resizeParticles);
+    }
+
+    function resizeParticles() {
+      if (!particlesCanvas) return;
+      particlesCanvas.width = window.innerWidth;
+      particlesCanvas.height = window.innerHeight;
+    }
+
+    let particlePool = [];
+    const MAX_PARTICLES = 60;
+
+    function spawnParticles(x, y, color) {
+      const now = performance.now();
+      for (let i = 0; i < 18; i++) {
+        const angle = (Math.PI * 2 * i) / 18 + Math.random() * 0.5;
+        const speed = 60 + Math.random() * 140;
+        particlePool.push({
+          x, y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 0.5 + Math.random() * 0.7,
+          born: now,
+          size: 2 + Math.random() * 3,
+          color: color || 'hsl(' + (260 + Math.random() * 40) + ', 80%, ' + (60 + Math.random() * 30) + '%)',
+        });
+      }
+      if (particlePool.length > MAX_PARTICLES) {
+        particlePool = particlePool.slice(-MAX_PARTICLES);
+      }
+      if (!particlesActive) {
+        particlesActive = true;
+        particlesCanvas.classList.add('active');
+        animateParticles();
+      }
+    }
+
+    function animateParticles() {
+      if (!particlesCtx) return;
+      const now = performance.now();
+      particlesCtx.clearRect(0, 0, particlesCanvas.width, particlesCanvas.height);
+
+      particlePool = particlePool.filter(p => {
+        const age = (now - p.born) / 1000;
+        if (age > p.life) return false;
+        const alpha = 1 - age / p.life;
+        const x = p.x + p.vx * age;
+        const y = p.y + p.vy * age + 100 * age * age; // gravity
+        particlesCtx.beginPath();
+        particlesCtx.arc(x, y, p.size * alpha, 0, Math.PI * 2);
+        particlesCtx.fillStyle = p.color;
+        particlesCtx.globalAlpha = alpha * 0.7;
+        particlesCtx.fill();
+        return true;
+      });
+
+      particlesCtx.globalAlpha = 1;
+
+      if (particlePool.length === 0) {
+        particlesActive = false;
+        particlesCanvas.classList.remove('active');
+        return;
+      }
+      particlesRaf = requestAnimationFrame(animateParticles);
+    }
+
+    function stopParticles() {
+      if (particlesRaf) {
+        cancelAnimationFrame(particlesRaf);
+        particlesRaf = null;
+      }
+      particlePool = [];
+      particlesActive = false;
+      if (particlesCanvas) particlesCanvas.classList.remove('active');
+    }
+
+    // ── 3D Tilt ────────────────────────────────────
+    function bindTilt(card) {
+      card.addEventListener('mousemove', (e) => {
+        if (card.classList.contains('picked')) return;
+        const rect = card.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = e.clientX - cx;
+        const dy = e.clientY - cy;
+        const rx = (dy / rect.height) * -10;
+        const ry = (dx / rect.width) * 10;
+        card.style.transform = 'perspective(600px) rotateX(' + rx + 'deg) rotateY(' + ry + 'deg) translateY(-4px)';
+      });
+      card.addEventListener('mouseleave', () => {
+        if (card.classList.contains('picked')) return;
+        card.style.transform = '';
+      });
+    }
+
+    // ── Audio ──────────────────────────────────────
     function playTeleportSound() {
       if (!window.AudioContext && !window.webkitAudioContext) return;
       if (!audioCtx) {
@@ -429,54 +1343,138 @@ const homePage = `<!DOCTYPE html>
 
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
-      
       osc.type = 'sine';
-      // 频率从低到高滑音
       osc.frequency.setValueAtTime(150, audioCtx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.5);
-      
-      // 音量淡入淡出
       gain.gain.setValueAtTime(0, audioCtx.currentTime);
       gain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.1);
       gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
-      
       osc.connect(gain);
       gain.connect(audioCtx.destination);
-      
       osc.start();
       osc.stop(audioCtx.currentTime + 0.6);
     }
 
-    // 成功锁定目标的提示音
     function playSuccessSound() {
       if (!audioCtx) return;
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
-      
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(600, audioCtx.currentTime);
       osc.frequency.setValueAtTime(800, audioCtx.currentTime + 0.1);
-      
       gain.gain.setValueAtTime(0, audioCtx.currentTime);
       gain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.05);
       gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
-      
       osc.connect(gain);
       gain.connect(audioCtx.destination);
-      
       osc.start();
       osc.stop(audioCtx.currentTime + 0.3);
     }
 
+    function playPickSound() {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(500, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.2);
+      osc.frequency.exponentialRampToValueAtTime(900, audioCtx.currentTime + 0.35);
+      gain.gain.setValueAtTime(0, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + 0.05);
+      gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.35);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.35);
+    }
+
+    // ── Card state ─────────────────────────────────
     function clearJumpTimers() {
       if (pendingJumpTimer) {
         window.clearTimeout(pendingJumpTimer);
         pendingJumpTimer = null;
       }
+    }
 
-      if (pendingRedirectTimer) {
-        window.clearTimeout(pendingRedirectTimer);
-        pendingRedirectTimer = null;
+    function resetRecommendationCards() {
+      for (let i = 0; i < 3; i++) {
+        const card = document.getElementById('recCard' + i);
+        const badge = document.getElementById('recBadge' + i);
+        const title = document.getElementById('recTitle' + i);
+        const cat = document.getElementById('recCat' + i);
+        const thumbImg = document.getElementById('recThumb' + i);
+        const fallback = document.getElementById('recFallback' + i);
+        const emoji = fallback ? fallback.querySelector('.rec-thumb-emoji') : null;
+
+        card.classList.remove('show', 'picked');
+        card.removeAttribute('data-category');
+        card.style.transform = '';
+        card.style.borderColor = '';
+        card.style.boxShadow = '';
+        card.style.filter = '';
+        badge.textContent = 'SOURCE';
+        title.textContent = 'Loading...';
+        cat.textContent = 'category';
+        if (thumbImg) {
+          thumbImg.classList.remove('loaded');
+          thumbImg.src = '';
+        }
+        if (emoji) emoji.textContent = '🎲';
+      }
+      recommendations.classList.remove('visible');
+      stopParticles();
+    }
+
+    function showRecommendationCards(items) {
+      targets = items;
+
+      // Hide loader
+      loader.style.display = 'none';
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const card = document.getElementById('recCard' + i);
+        const badge = document.getElementById('recBadge' + i);
+        const title = document.getElementById('recTitle' + i);
+        const cat = document.getElementById('recCat' + i);
+        const thumbImg = document.getElementById('recThumb' + i);
+        const fallback = document.getElementById('recFallback' + i);
+        const emojiEl = fallback ? fallback.querySelector('.rec-thumb-emoji') : null;
+
+        card.setAttribute('data-category', item.category);
+        badge.textContent = item.source;
+        title.textContent = item.title;
+        cat.textContent = item.category;
+
+        // Set category emoji
+        if (emojiEl) {
+          emojiEl.textContent = categoryEmoji[item.category] || '🎲';
+        }
+
+        // Load thumbnail
+        if (thumbImg && item.thumbnailUrl) {
+          const img = new Image();
+          img.onload = function () {
+            thumbImg.src = item.thumbnailUrl;
+            thumbImg.classList.add('loaded');
+          };
+          img.onerror = function () {
+            // Keep fallback visible
+          };
+          img.src = item.thumbnailUrl;
+        }
+      }
+
+      // Show grid
+      recommendations.classList.add('visible');
+
+      // Staggered spring entrance
+      for (let i = 0; i < items.length; i++) {
+        const card = document.getElementById('recCard' + i);
+        setTimeout(() => {
+          card.classList.add('show');
+          bindTilt(card);
+        }, 100 + i * 130);
       }
     }
 
@@ -488,14 +1486,57 @@ const homePage = `<!DOCTYPE html>
       }
 
       isLoading = false;
+      targets = [];
       overlay.classList.remove('active');
-      targetInfo.classList.remove('visible');
       overlayTitle.textContent = 'Summoning Chaos';
       overlayDesc.textContent = 'Rolling the dice across the internet, please wait...';
-      targetTag.textContent = 'SOURCE';
-      targetTitle.textContent = 'Loading...';
+      loader.style.display = '';
+      resetRecommendationCards();
     }
 
+    // ── Pick & navigate ────────────────────────────
+    function pickTarget(index) {
+      if (!targets[index]) return;
+      const item = targets[index];
+
+      // Record click if logged in
+      recordClick(item);
+
+      // Fade out unselected cards
+      for (let i = 0; i < 3; i++) {
+        if (i !== index) {
+          const other = document.getElementById('recCard' + i);
+          other.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+          other.style.opacity = '0.3';
+          other.style.transform = 'scale(0.92)';
+          other.style.pointerEvents = 'none';
+        }
+      }
+
+      const card = document.getElementById('recCard' + index);
+      const rect = card.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+
+      playPickSound();
+      card.classList.add('picked');
+      card.style.pointerEvents = 'none';
+
+      // Spawn particles from card center
+      spawnParticles(cx, cy, '#7c3aed');
+
+      // Overlay flash
+      const flash = document.createElement('div');
+      flash.style.cssText = 'position:fixed;inset:0;background:rgba(124,58,237,0.06);z-index:102;pointer-events:none;';
+      document.body.appendChild(flash);
+      setTimeout(() => flash.remove(), 300);
+
+      setTimeout(() => {
+        window.location.href = item.url;
+      }, 400);
+    }
+
+    // ── Main jump flow ─────────────────────────────
     async function startJump(forceRetry) {
       if (isLoading && !forceRetry) return;
 
@@ -507,37 +1548,36 @@ const homePage = `<!DOCTYPE html>
       jumpController = new AbortController();
       isLoading = true;
 
-      targetInfo.classList.remove('visible');
+      resetRecommendationCards();
+      loader.style.display = '';
       overlayTitle.textContent = 'Navigating the Web...';
-      overlayDesc.textContent = 'RNG is picking a target from live trending sources';
+      overlayDesc.textContent = 'RNG is picking targets from live trending sources';
       overlay.classList.add('active');
 
       playTeleportSound();
 
       try {
-        const res = await fetch('/api/biu', {
-          headers: { 'Accept': 'application/json' },
+        const headers = { 'Accept': 'application/json' };
+        if (authToken) {
+          headers['Authorization'] = 'Bearer ' + authToken;
+        }
+        const res = await fetch('/api/biu/three', {
+          headers: headers,
           signal: jumpController.signal,
         });
         const payload = await res.json();
 
-        if (!res.ok || !payload.data || !payload.data.url) {
-          throw new Error(payload.msg || 'API returned an invalid target');
+        if (!res.ok || !payload.data || !Array.isArray(payload.data) || payload.data.length === 0) {
+          throw new Error(payload.msg || 'API returned invalid data');
         }
 
         pendingJumpTimer = window.setTimeout(() => {
           playSuccessSound();
-          overlayTitle.textContent = 'Target Locked';
-          overlayDesc.textContent = 'Portal is open, initiating jump sequence';
-
-          targetTag.textContent = payload.data.source + ' · ' + payload.data.category;
-          targetTitle.textContent = payload.data.title;
-          targetInfo.classList.add('visible');
-
-          pendingRedirectTimer = window.setTimeout(() => {
-            window.location.href = payload.data.url;
-          }, 700);
-        }, 250);
+          overlayTitle.textContent = 'Pick Your Journey';
+          overlayDesc.textContent = 'The web has spoken — choose your next destination';
+          showRecommendationCards(payload.data);
+          isLoading = false;
+        }, 400);
 
       } catch (err) {
         if (err && err.name === 'AbortError') {
@@ -547,7 +1587,6 @@ const homePage = `<!DOCTYPE html>
         setTimeout(() => {
           overlayTitle.textContent = 'Jump Failed';
           overlayDesc.textContent = err.message || 'Network error or service unavailable, please try again';
-
           isLoading = false;
         }, 200);
       } finally {
@@ -555,7 +1594,13 @@ const homePage = `<!DOCTYPE html>
       }
     }
 
-    window.addEventListener('pageshow', resetOverlayState);
+    // ── Init ───────────────────────────────────────
+    initParticles();
+    checkAuth();
+    window.addEventListener('pageshow', function() {
+      resetOverlayState();
+      checkAuth();
+    });
     window.addEventListener('pagehide', clearJumpTimers);
     trigger.addEventListener('click', startJump);
     retry.addEventListener('click', () => startJump(true));

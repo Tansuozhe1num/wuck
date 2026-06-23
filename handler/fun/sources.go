@@ -33,13 +33,18 @@ func (m sourceMeta) Hint() string {
 }
 
 func (m sourceMeta) buildResult(title string, url string) RandomJumpResult {
+	return m.buildResultWithThumbnail(title, url, "")
+}
+
+func (m sourceMeta) buildResultWithThumbnail(title string, url string, thumbnailURL string) RandomJumpResult {
 	return RandomJumpResult{
-		Title:     normalizeText(title),
-		URL:       strings.TrimSpace(url),
-		Category:  m.category,
-		Hint:      m.hint,
-		Source:    m.name,
-		FetchedAt: time.Now().Format(time.RFC3339),
+		Title:        normalizeText(title),
+		URL:          strings.TrimSpace(url),
+		Category:     m.category,
+		Hint:         m.hint,
+		Source:       m.name,
+		ThumbnailURL: strings.TrimSpace(thumbnailURL),
+		FetchedAt:    time.Now().Format(time.RFC3339),
 	}
 }
 
@@ -207,7 +212,8 @@ func (s bilibiliPopularSource) Fetch(ctx context.Context, client *http.Client) (
 			url = "https://www.bilibili.com/video/" + item.Bvid
 		}
 
-		result := s.buildResult(item.Title, url)
+		thumbnailURL := strings.TrimSpace(item.Pic)
+		result := s.buildResultWithThumbnail(item.Title, url, thumbnailURL)
 		if result.Title == "" || result.URL == "" {
 			continue
 		}
@@ -221,10 +227,95 @@ func (s bilibiliPopularSource) Fetch(ctx context.Context, client *http.Client) (
 	return results, nil
 }
 
+// ── 抖音热榜 source ──────────────────────────────────
+
+type douyinHotSearchSource struct {
+	sourceMeta
+	apiURL string
+}
+
+func (s douyinHotSearchSource) Fetch(ctx context.Context, client *http.Client) ([]RandomJumpResult, error) {
+	body, err := fetchBodyWithReferer(ctx, client, s.apiURL, "https://www.douyin.com/")
+	if err != nil {
+		return nil, err
+	}
+
+	var payload douyinHotSearchResponse
+	if err = json.Unmarshal(body, &payload); err != nil {
+		return nil, err
+	}
+
+	results := make([]RandomJumpResult, 0, 12)
+	for _, item := range payload.Data.WordList {
+		if item.Word == "" {
+			continue
+		}
+		url := "https://www.douyin.com/search/" + item.Word
+		thumbnailURL := ""
+		if item.WordCover.URLList != nil && len(item.WordCover.URLList) > 0 {
+			thumbnailURL = item.WordCover.URLList[0]
+		}
+		result := s.buildResultWithThumbnail(item.Word, url, thumbnailURL)
+		if result.Title != "" && result.URL != "" {
+			results = append(results, result)
+		}
+	}
+
+	if len(results) == 0 {
+		return nil, errors.New("抖音热榜没有抓到内容")
+	}
+
+	return results, nil
+}
+
+// ── 微博热搜 source ───────────────────────────────────
+
+type weiboHotSearchSource struct {
+	sourceMeta
+	apiURL string
+}
+
+func (s weiboHotSearchSource) Fetch(ctx context.Context, client *http.Client) ([]RandomJumpResult, error) {
+	body, err := fetchBodyWithReferer(ctx, client, s.apiURL, "https://weibo.com/")
+	if err != nil {
+		return nil, err
+	}
+
+	var payload weiboHotSearchResponse
+	if err = json.Unmarshal(body, &payload); err != nil {
+		return nil, err
+	}
+
+	results := make([]RandomJumpResult, 0, 12)
+	for _, item := range payload.Data.Realtime {
+		if item.Word == "" {
+			continue
+		}
+		url := "https://s.weibo.com/weibo?q=" + item.Word
+		result := s.buildResultWithThumbnail(item.Word, url, item.Icon)
+		if result.Title != "" && result.URL != "" {
+			results = append(results, result)
+		}
+		if len(results) >= 12 {
+			break
+		}
+	}
+
+	if len(results) == 0 {
+		return nil, errors.New("微博热搜没有抓到内容")
+	}
+
+	return results, nil
+}
+
+// ── Source registration ──────────────────────────────
+
 func newHotRankCrawlerSources() []crawlerSource {
 	return []crawlerSource{
 		newQidianRankSource(),
 		newBilibiliPopularSource(),
+		newDouyinHotSearchSource(),
+		newWeiboHotSearchSource(),
 		newCnblogsTopDiggsSource(),
 		newHackerNewsTopSource(),
 	}
@@ -336,4 +427,72 @@ type bilibiliPopularItem struct {
 	Title       string `json:"title"`
 	Bvid        string `json:"bvid"`
 	RedirectURL string `json:"redirect_url"`
+	Pic         string `json:"pic"`
+}
+
+type douyinHotSearchResponse struct {
+	Data struct {
+		WordList []struct {
+			Word      string `json:"word"`
+			GroupID   string `json:"group_id"`
+			WordCover struct {
+				URLList []string `json:"url_list"`
+			} `json:"word_cover"`
+		} `json:"word_list"`
+	} `json:"data"`
+}
+
+type weiboHotSearchResponse struct {
+	Data struct {
+		Realtime []struct {
+			Word string `json:"word"`
+			Icon string `json:"icon"`
+			Num  int    `json:"num"`
+		} `json:"realtime"`
+	} `json:"data"`
+}
+
+func newDouyinHotSearchSource() crawlerSource {
+	return douyinHotSearchSource{
+		sourceMeta: sourceMeta{
+			name:     "抖音热榜",
+			category: "video",
+			hint:     "热门搜索词来自抖音热榜接口。",
+		},
+		apiURL: "https://www.douyin.com/aweme/v1/web/hot/search/list/",
+	}
+}
+
+func newWeiboHotSearchSource() crawlerSource {
+	return weiboHotSearchSource{
+		sourceMeta: sourceMeta{
+			name:     "微博热搜",
+			category: "news",
+			hint:     "热搜词来自微博实时热榜。",
+		},
+		apiURL: "https://weibo.com/ajax/side/hotSearch",
+	}
+}
+
+func fetchBodyWithReferer(ctx context.Context, client *http.Client, url string, referer string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Accept", "application/json, */*")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("Referer", referer)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return nil, errors.New("远程源返回状态异常")
+	}
+
+	return io.ReadAll(resp.Body)
 }
