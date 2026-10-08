@@ -38,7 +38,7 @@ const homePage = `<!DOCTYPE html>
       align-items: center;
       justify-content: center;
       overflow: hidden;
-      padding: 24px;
+      padding: 24px 24px 64px;
     }
 
     /* 背景网格效果 */
@@ -58,6 +58,27 @@ const homePage = `<!DOCTYPE html>
       width: 100%;
       max-width: 600px;
       z-index: 1;
+    }
+
+    .site-footer {
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      left: 16px;
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .site-footer a {
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+
+    .site-footer a:hover,
+    .site-footer a:focus-visible {
+      color: var(--text-main);
+      text-decoration: underline;
     }
 
     .card {
@@ -386,6 +407,10 @@ const homePage = `<!DOCTYPE html>
       </div>
     </div>
   </div>
+
+  <footer class="site-footer">
+    <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">粤ICP备2026042209号-1</a>
+  </footer>
 
   <div id="overlay" class="overlay">
     <div class="loader">
